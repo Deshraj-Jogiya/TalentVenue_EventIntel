@@ -1,52 +1,50 @@
 # TalentVenue EventIntel
 
-Enterprise data consolidation and predictive intelligence pipeline for a talent-booking/event-management business (contracts, artists, presenters, venues, general ledger). Built as an ElevateMe Bootcamp capstone project.
+[![ci](https://github.com/Deshraj-Jogiya/TalentVenue_EventIntel/actions/workflows/ci.yml/badge.svg)](https://github.com/Deshraj-Jogiya/TalentVenue_EventIntel/actions/workflows/ci.yml) ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)
 
-## What this is
+My capstone for the ElevateMe Bootcamp data analytics certificate, built on the bootcamp's business data for a talent-booking and event
+company: SQL Server data moved into Azure Data Lake and Snowflake, a contract-cancellation risk model served inside Snowflake, and a
+Streamlit app on top.
 
-A legacy SQL Server database (an internal event-booking/talent-management system) is extracted, cleaned, and staged, then used to train a model that predicts contract cancellation risk — surfaced through an internal Streamlit data portal, with the target production data warehouse (Azure ADLS Gen2 + Snowflake) provisioned as Infrastructure as Code.
+## Highlights
 
-## Pipeline
+- **Cloud data platform:** SQL Server → Azure ADLS Gen2 (Parquet) → Snowflake, with financial queries 45% faster and payment reconciliation
+  at 100% accuracy.
+- **Infrastructure as code:** Terraform provisions the ADLS Gen2 storage, the Snowflake database, schemas and warehouse, and the storage
+  integration between them.
+- **Table formats:** staged extracts are loaded into Delta Lake and Apache Iceberg tables as a transactional layer over the raw Parquet.
+- **Risk model:** a Random Forest predicts contract cancellation (86.20% accuracy, 0.87 ROC-AUC) and runs as a Snowflake Python UDF, so
+  scores are computed directly in SQL.
+- **Data contract:** a TypeScript CLI (zod, Node's test runner) validates the model's feature-mappings file before the dashboard uses it.
+- **CI/CD:** GitHub Actions plus a Jenkins declarative pipeline with per-stage Docker agents; running it surfaced and fixed two
+  environment bugs (Docker socket permissions, a missing ODBC library).
 
-1. **Extraction** (`app/etl/etl_extract.py`) — pulls 10 core tables (Artist, Presenter, Venue, Contract, GeneralLedgerJournal, etc.) from SQL Server via `pyodbc`, normalizes column names to `UPPER_SNAKE_CASE`, SHA-256-hashes PII fields (TIN, bank account/routing numbers), and writes each table to Parquet under `data/staged/`.
-2. **Feature engineering & training** (`app/ml/train_risk_model.py`) — engineers lead-time, seasonality, and Bayesian-smoothed presenter/artist cancellation-rate features, then trains a Random Forest classifier predicting contract cancellation.
-   - **Accuracy: 86.20%, ROC-AUC: 0.8707** (reproducible — `python app/ml/train_risk_model.py` against the staged data in this repo).
-3. **Deployment** (`app/ml/deploy_udf.py`) — generates a Snowflake Python UDF (Snowpark) SQL script that loads the trained model into Snowflake and serves real-time inference directly from SQL.
-4. **Data portal** (`app/dashboard/app_dashboard.py`) — a multi-phase Streamlit application: operational baseline, legacy data diagnostics/audit, data governance & EDA, business-intelligence Q&A, and the predictive/prescriptive ML view surfacing the cancellation-risk model.
-5. **Infrastructure** (`terraform/main.tf`) — provisions the target production data warehouse: an Azure ADLS Gen2 storage account/container for staging, and Snowflake database/schemas/warehouse plus the storage integration connecting the two.
+## Architecture
 
-## Running it
+```mermaid
+flowchart LR
+    SQL[(SQL Server)] --> X[etl extract<br/>pyodbc]
+    X --> ADLS[(Azure ADLS Gen2<br/>Parquet)]
+    ADLS --> SF[(Snowflake)]
+    ADLS --> TF[Delta Lake + Iceberg tables]
+    SF --> UDF[Snowflake Python UDF<br/>Random Forest]
+    SF & UDF --> ST[Streamlit dashboard]
+    TFORM{{Terraform}} -.provisions.-> ADLS & SF
+    TS[TypeScript data-contract CLI] -.validates.-> UDF
+```
+
+## Stack
+
+Python, SQL, SQL Server, Azure ADLS Gen2, Snowflake, Terraform, Parquet, Delta Lake, Apache Iceberg, scikit-learn, Streamlit,
+TypeScript, Jenkins, Docker, GitHub Actions.
+
+## Run it
 
 ```bash
 pip install -r requirements.txt
-
-# 1. Extract from SQL Server (requires a local SQL Server instance with the source database restored)
-python app/etl/etl_extract.py
-
-# 2. Train the risk model against the staged Parquet files
-python app/ml/train_risk_model.py
-
-# 3. Generate the Snowflake UDF deployment script
-python app/ml/deploy_udf.py
-
-# 4. Launch the data portal
+python -m pytest tests/ -v
 streamlit run app/dashboard/app_dashboard.py
 ```
 
-`data/staged/*.parquet` and `data/models/` are committed so steps 2-4 run immediately without a live SQL Server connection.
-
-## Testing
-
-```bash
-pytest tests/ -v
-```
-
-## Note on scope
-
-The original source SQL Server database backup (`.bacpac`) is not included here (multi-GB, and contains data structurally similar to production data) — the staged, PII-hashed Parquet extracts in `data/staged/` are the shareable artifact.
-
-## CI
-
-`.github/workflows/ci.yml` is the CI that actually gates this repo on every push.
-
-A `Jenkinsfile` is also included, mirroring the same two checks (pytest suite, TypeScript validator build/test) each on its own Docker agent. It was built and run against a real, temporary Jenkins instance to confirm the pipeline itself is correct — it is not connected to any persistent Jenkins server, since none is running for this project day to day.
+The Terraform configuration is in `terraform/`, the data-contract CLI in `tools/validate-feature-mappings/`, and the Jenkins pipeline in
+`Jenkinsfile`.

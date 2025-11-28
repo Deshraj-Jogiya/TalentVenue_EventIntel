@@ -2,7 +2,7 @@
 
 [![ci](https://github.com/Deshraj-Jogiya/TalentVenue_EventIntel/actions/workflows/ci.yml/badge.svg)](https://github.com/Deshraj-Jogiya/TalentVenue_EventIntel/actions/workflows/ci.yml) ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)
 
-My capstone for the ElevateMe Bootcamp data analytics certificate, built on the bootcamp's business data for a talent-booking and event
+Capstone project for the ElevateMe Bootcamp data analytics certificate, built on the bootcamp's business data for a talent-booking and event
 company: SQL Server data moved into Azure Data Lake and Snowflake, a contract-cancellation risk model served inside Snowflake, and a
 Streamlit app on top.
 

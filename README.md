@@ -19,6 +19,8 @@ Streamlit app on top.
 - **CI/CD:** GitHub Actions plus a Jenkins declarative pipeline with per-stage Docker agents; running it surfaced and fixed two
   environment bugs (Docker socket permissions, a missing ODBC library).
 
+Measured results, each with the question, the test and the decision: [docs/FINDINGS.md](docs/FINDINGS.md).
+
 ## Architecture
 
 ```mermaid

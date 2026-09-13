@@ -44,3 +44,9 @@ pytest tests/ -v
 ## Note on scope
 
 The original source SQL Server database backup (`.bacpac`) is not included here (multi-GB, and contains data structurally similar to production data) — the staged, PII-hashed Parquet extracts in `data/staged/` are the shareable artifact.
+
+## CI
+
+`.github/workflows/ci.yml` is the CI that actually gates this repo on every push.
+
+A `Jenkinsfile` is also included, mirroring the same two checks (pytest suite, TypeScript validator build/test) each on its own Docker agent. It was built and run against a real, temporary Jenkins instance to confirm the pipeline itself is correct — it is not connected to any persistent Jenkins server, since none is running for this project day to day.

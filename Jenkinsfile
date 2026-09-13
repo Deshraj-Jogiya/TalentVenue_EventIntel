@@ -9,6 +9,10 @@ pipeline {
             // breaks pip's HOME-relative cache/user-site paths otherwise.
             agent { docker { image 'python:3.11-slim'; args '-u root:root' } }
             steps {
+                // pyodbc needs libodbc.so.2 at import time; python:3.11-slim doesn't
+                // ship it (ubuntu-latest's GitHub Actions runner has it preinstalled,
+                // which is why ci.yml's requirements.txt alone is enough there).
+                sh 'apt-get update -qq && apt-get install -y -qq unixodbc'
                 sh 'pip install --quiet -r requirements.txt'
                 sh 'python -m pytest tests/ -v'
             }

@@ -5,7 +5,9 @@ pipeline {
 
     stages {
         stage('Run Pytest Suite') {
-            agent { docker { image 'python:3.11-slim' } }
+            // -u root: the mapped Jenkins UID has no passwd entry in this image, which
+            // breaks pip's HOME-relative cache/user-site paths otherwise.
+            agent { docker { image 'python:3.11-slim'; args '-u root:root' } }
             steps {
                 sh 'pip install --quiet -r requirements.txt'
                 sh 'python -m pytest tests/ -v'
@@ -13,7 +15,7 @@ pipeline {
         }
 
         stage('Build and test the TypeScript feature-mappings validator') {
-            agent { docker { image 'node:22-slim' } }
+            agent { docker { image 'node:22-slim'; args '-u root:root' } }
             steps {
                 dir('tools/validate-feature-mappings') {
                     sh 'npm install'
